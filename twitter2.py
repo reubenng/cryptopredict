@@ -3,7 +3,7 @@ from tweepy.streaming import StreamListener
 import json
 import tweepy
 from tweepy import OAuthHandler
-import csv
+import unicodecsv as csv
 import io
 
 consumer_key = '4qYbFPBgx25h4clyn6huZ8lbR'
@@ -30,8 +30,8 @@ class MyListener(StreamListener):
                 tweet_id = resp_dict['id']
                 user_id = resp_dict['user']['id']
 
-                csv_input = time_stamp + ',' + text + '\n'
-                print(str(csv_input))
+                #csv_input = time_stamp + ',' + text + '\n'
+                #print(str(csv_input))
 
                 # write into csv
                 writer = csv.writer(o)
