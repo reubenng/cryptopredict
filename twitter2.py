@@ -27,12 +27,15 @@ class MyListener(StreamListener):
                 resp_dict = json.loads(data)
                 time_stamp = resp_dict['created_at']
                 text = resp_dict['text']
+                tweet_id = resp_dict['id']
+                user_id = resp_dict['user']['id']
+
                 csv_input = time_stamp + ',' + text + '\n'
                 print(str(csv_input))
 
                 # write into csv
                 writer = csv.writer(o)
-                writer.writerow([time_stamp, text])
+                writer.writerow([time_stamp, user_id, tweet_id, text])
                 return True
 
         except BaseException as e:
