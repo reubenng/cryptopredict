@@ -3,7 +3,7 @@ from tweepy.streaming import StreamListener
 import json
 import tweepy
 from tweepy import OAuthHandler
-import csv
+import unicodecsv as csv
 import io
 
 consumer_key = '4qYbFPBgx25h4clyn6huZ8lbR'
