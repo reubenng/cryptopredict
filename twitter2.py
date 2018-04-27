@@ -25,17 +25,31 @@ class MyListener(StreamListener):
             
                 # f.write(data)
                 resp_dict = json.loads(data)
+                print(resp_dict)
                 time_stamp = resp_dict['created_at']
                 text = resp_dict['text']
                 tweet_id = resp_dict['id']
                 user_id = resp_dict['user']['id']
+                verified = resp_dict['user']['verified']
+                follower_count = resp_dict['user']['followers_count']
+                friends_count = resp_dict['user']['friends_count']
+                listed_count = resp_dict['user']['listed_count']
+                favourites_count = resp_dict['user']['favourites_count']
+                statuses_count = resp_dict['user']['statuses_count']
+                lang = resp_dict['user']['lang']
+                hashtag = resp_dict['entities']['hashtags']
+                hashtag_text = ''
+                if len(hashtag) >= 1:
+                    for i in range(len(hashtag)):
+                        hashtag_text = hashtag_text + ' ' + hashtag[i]['text']
+                else:
+                    hashtag_text = ''
 
-                csv_input = time_stamp + ',' + text + '\n'
-                print(str(csv_input))
+                # csv_input = time_stamp + ',' + text + ',' + tweet_id + '\n'
 
                 # write into csv
                 writer = csv.writer(o)
-                writer.writerow([time_stamp, user_id, tweet_id, text])
+                writer.writerow([time_stamp, user_id, tweet_id, text, verified, follower_count, friends_count, listed_count, favourites_count, statuses_count,lang,hashtag_text])
                 return True
 
         except BaseException as e:
