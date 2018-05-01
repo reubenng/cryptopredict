@@ -25,7 +25,7 @@ class MyListener(StreamListener):
             
                 # f.write(data)
                 resp_dict = json.loads(data)
-                print(resp_dict)
+                # print(resp_dict)
                 time_stamp = resp_dict['created_at']
                 text = resp_dict['text']
                 tweet_id = resp_dict['id']
