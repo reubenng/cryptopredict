@@ -21,7 +21,7 @@ class MyListener(StreamListener):
     def on_data(self, data):
         try:
             # with open('python.json', 'a') as f:
-            with open('data.csv','a') as o:
+            with open('data.csv','ab') as o:
             
                 # f.write(data)
                 resp_dict = json.loads(data)
