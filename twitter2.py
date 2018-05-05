@@ -64,7 +64,7 @@ class MyListener(StreamListener):
             if isinstance(e, KeyboardInterrupt):
                 raise e
             from datetime import datetime
-            with open('twitterapi.log','ab') as log:
+            with open('twitterapi.log','a') as log:
                 error_msg = "{} {} on_data: {}".format(
                         datetime.utcnow(), this_is_lame(e), e)
                 print(error_msg)
