@@ -25,7 +25,7 @@ class MyListener(StreamListener):
             
                 # f.write(data)
                 resp_dict = json.loads(data)
-                print(resp_dict)
+                # print(resp_dict)
                 time_stamp = resp_dict['created_at']
                 text = resp_dict['text']
                 tweet_id = resp_dict['id']
@@ -53,7 +53,8 @@ class MyListener(StreamListener):
                 return True
 
         except BaseException as e:
-            print("Error on_data: %s" % str(e))
+            from datetime import datetime
+            print("{} Error on_data: {}".format(datetime.utcnow(), str(e)))
         return True
  
     def on_error(self, status):
