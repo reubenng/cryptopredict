@@ -2,6 +2,7 @@ import time
 import json
 from pprint import pprint
 from urllib.request import urlopen
+import urllib.error
 
 cnt = 0
 counter = 1
@@ -23,12 +24,17 @@ df.write(",".join(title_row) + "\n")
 df.close()
 
 # Append the data
-while cnt < 60:
-	data = json.load(urlopen(url))
-	df = open('cryptodata.csv', 'a')
-	df.write(create_row(data))
-	df.close()
-	print("Data points collected: " + str(counter), end="\r", flush=True)
+while cnt < 604800:
+	try:
+		data = json.load(urlopen(url))
+		df = open('cryptodata.csv', 'a')
+		df.write(create_row(data))
+		df.close()
+		print("Data points collected: " + str(counter), end="\r", flush=True)
+	except (urllib.error.URLError, KeyError) as e:
+		from datetime import datetime
+		print("{} Error on_data: {}".format(datetime.utcnow(), str(e)))
+
 	time.sleep(10)
 	cnt += 10
 	counter += 1
