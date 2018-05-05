@@ -14,14 +14,22 @@ access_secret = 'licSyFy2CbTfwu3T536cXuNY9xkjcfN0xYSIxzNcmuoRr'
 auth = OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_secret)
  
-api = tweepy.API(auth) 
+api = tweepy.API(auth)
+
+def this_is_lame(err):
+    """ From https://stackoverflow.com/questions/36921759/getting-the-exception-class-name-in-python?rq=1 """
+    if type(err).__module__ in ['__main__', 'builtins']:
+        return "{}: {}".format(type(err).__name__, err)
+    else:
+        return "{}.{}: {}".format(type(err).__module__, type(err).__name__, err)
 
 class MyListener(StreamListener):
     
     def on_data(self, data):
+        resp_dict = None
         try:
             # with open('python.json', 'a') as f:
-            with open('data.csv','a') as o:
+            with open('data.csv','ab') as o:
             
                 # f.write(data)
                 resp_dict = json.loads(data)
@@ -53,7 +61,17 @@ class MyListener(StreamListener):
                 return True
 
         except BaseException as e:
-            print("Error on_data: %s" % str(e))
+            if isinstance(e, KeyboardInterrupt):
+                raise e
+            from datetime import datetime
+            with open('twitterapi.log','a') as log:
+                error_msg = "{} {} on_data: {}".format(
+                        datetime.utcnow(), this_is_lame(e), e)
+                print(error_msg)
+                log.write(error_msg)
+                if isinstance(e, KeyError):
+                    log.write("    json was {}".format(resp_dict))
+
         return True
  
     def on_error(self, status):
