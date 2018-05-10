@@ -3,6 +3,7 @@ import json
 from pprint import pprint
 from urllib.request import urlopen
 import urllib.error
+import http.client
 
 cnt = 0
 counter = 1
@@ -31,7 +32,9 @@ while cnt < 604800:
 		df.write(create_row(data))
 		df.close()
 		print("Data points collected: " + str(counter), end="\r", flush=True)
-	except (urllib.error.URLError, KeyError) as e:
+	except (urllib.error.URLError,
+                http.client.HTTPException,
+                KeyError) as e:
 		from datetime import datetime
 		print("{} Error on_data: {}".format(datetime.utcnow(), str(e)))
 
