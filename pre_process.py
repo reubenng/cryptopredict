@@ -5,7 +5,7 @@ from textblob import TextBlob
 import time
 
 # import csv to df
-with codecs.open('../../../data.csv', "r",encoding='utf-8', errors='ignore') as fdata:
+with codecs.open('./data.csv', "r",encoding='utf-8', errors='ignore') as fdata:
     df = pd.read_csv(fdata, sep=',', names = ["TimeStamp", "UserID", "TweetID", "Content","Verified","FollowersCount","FriendsCount","ListedCount","FavouritesCount","StatusesCount","Language","Hashtags"])
 
 # add headers to df
