@@ -12,7 +12,7 @@ with codecs.open('./data.csv', "r",encoding='utf-8', errors='ignore') as fdata:
 df["Sentiment"] = ""
 
 
-# df = df.iloc[:10000]
+# df = df.iloc[:500]
 
 # print(df.head())
 counter = 0
@@ -25,7 +25,7 @@ for index, row in df.iterrows():
     df.loc[index,'Sentiment'] = sentiment
     ts = time.strftime('%Y-%m-%d %H:%M:%S', time.strptime(df['TimeStamp'][index],'%a %b %d %H:%M:%S +0000 %Y'))
     df.loc[index,'TimeStamp'] = ts
-    counter = counter + 1
+    # counter = counter + 1
 
     # if counter == 100:
     #     # print(df.head(n=100))
@@ -55,13 +55,17 @@ df_for_reub = pd.DataFrame(columns=['Timeframe','Sentiment','NumberOfTweets','Av
 # fill in data for reub
 for name, group in df_grouped:
     # print(group)
-    timeframe = name # hour
+    timeframeIndexValue = group.index.tolist()
+    # print(timeframeIndexValue[0])
+    timeframe = df['TimeStamp'][timeframeIndexValue[0]] # hour
     # print(group.index.values.tolist())
     sentiment = df['Sentiment'][group.index.values].mean()
     numberOfTweets = group.size
     AverageFavourites = df['FavouritesCount'][group.index.values].mean()
 
-    df_for_reub.loc[len(df_for_reub)] = [timeframe, sentiment, numberOfTweets, AverageFavourites] 
+    df_for_reub.loc[len(df_for_reub)] = [timeframe, sentiment, numberOfTweets, AverageFavourites]
+    logging = 'Writing row onto csv: (timeframe) ' + str(timeframe) + ' (sentiment) ' + str(sentiment) + ' (numberOfTweets) ' + str(numberOfTweets) + ' (AverageFavourites) ' + str(AverageFavourites)
+    print(logging)
 
 # print(df_for_reub.head())
 
