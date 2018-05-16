@@ -16,14 +16,13 @@ import h5py
 
 import tensorflow as tf
 
-
 import csv
-
-import numpy as np
 
 import CNN as preprocess
 
-batch_size = 512
+import numpy as np
+
+batch_size = 2048
 
 epochs = 100
 data_augmentation = True
@@ -35,10 +34,11 @@ model_name = 'keras_cifar10_trained_model.h5'
 class DataGenerator(keras.utils.Sequence):
 	'Generates data for Keras'
 	def __init__(self, lines, seek_pos, csv_file_name="data/made.csv",
-				 batch_size=batch_size, dim=preprocess.input_shape,
+				 batch_size=batch_size, dim=None,
 				 n_classes=2, shuffle=True):
 		'Initialization'
-		self.dim = dim
+		import CNN as preprocess
+		self.dim = preprocess.input_shape if dim is None else dim
 		self.batch_size = batch_size
 		self.csv_file_name = csv_file_name
 		self.n_classes = n_classes
@@ -48,10 +48,74 @@ class DataGenerator(keras.utils.Sequence):
 		self.seek_pos = seek_pos
 
 		self.csv_file = open(csv_file_name, "r", newline='')
-		self.reader = csv.reader(iter(self.csv_file, ''))
+		self.reader = csv.reader(iter(self.csv_file.readline, ''))
 
 		self.text_pos = 3
 		self.training_pos = 16 # 15 minutes into the future
+
+		self.on_epoch_end()
+
+	def __len__(self):
+		'Denotes the number of batches per epoch'
+		return int(np.floor(len(self.lines)) / self.batch_size)
+
+	def __getitem__(self, index):
+		'Generate one batch of data'
+		# Generate indexes of the batch
+		indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+
+		# Find list of lines
+		lines = [self.lines[k] for k in indexes]
+
+		# Generate data
+		X, y = self.__data_generation(lines)
+
+		return X, y
+
+	def on_epoch_end(self):
+		'Updates indexes after each epoch'
+		self.indexes = np.arange(len(self.lines))
+		if self.shuffle == True:
+			np.random.shuffle(self.indexes)
+
+	def __data_generation(self, lines):
+		'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
+		import CNN as preprocess
+		# Initialization
+		X = np.empty((self.batch_size, *self.dim))
+		y = np.empty((self.batch_size), dtype=int)
+
+		# Generate data
+		for i, line in enumerate(lines):
+			self.csv_file.seek(self.seek_pos[line])
+			line_data = next(self.reader)
+			# Store sample
+			X[i,] = preprocess.vectorize(line_data[self.text_pos])
+
+			# Store class
+			y[i] = preprocess.make_label(line_data, self.training_pos)
+
+		return X, keras.utils.to_categorical(y, num_classes=self.n_classes)
+
+class DataGeneratorFromHDF5(keras.utils.Sequence):
+	'Generates data for Keras'
+	def __init__(self, lines, hdf5_filename="data/database.hdf5",
+				 batch_size=batch_size, dim=preprocess.input_shape,
+				 n_classes=2, shuffle=True):
+		'Initialization'
+		self.dim = dim
+		self.batch_size = batch_size
+		self.hdf5_filename = hdf5_filename
+		self.n_classes = n_classes
+		self.shuffle = shuffle
+		self.lines = lines
+
+		self.h5pyfile = h5py.File(hdf5_filename, "r")
+		self.text_data = self.h5pyfile.get("text")
+		self.winning_data = self.h5pyfile.get("prices_up")
+
+		self.text_pos = 3
+		self.training_pos = 16 # 60 minutes into the future
 
 		self.on_epoch_end()
 
@@ -86,13 +150,11 @@ class DataGenerator(keras.utils.Sequence):
 
 		# Generate data
 		for i, line in enumerate(lines):
-			self.csv_file.seek(self.seek_pos[line])
-			line_data = next(self.reader)
 			# Store sample
-			X[i,] = preprocess.vectorize(line_data[self.text_pos])
+			X[i,] = self.text_data[i, :, :]
 
 			# Store class
-			y[i] = preprocess.make_label(line_data, self.training_pos)
+			y[i] = self.winning_data[i, self.training_pos]
 
 		return X, keras.utils.to_categorical(y, num_classes=self.n_classes)
 
@@ -111,9 +173,8 @@ class SimpleCNN:
 		conveds = list()
 		pooleds = list()
 		for filter_size in filter_sizes:
-			conved = Conv1D(filters=5, kernel_size=filter_size,
+			conved = Conv1D(filters=2, kernel_size=filter_size,
 				name="{}conv1d".format(filter_size), padding="same",
-				activation=keras.layers.LeakyReLU(alpha=.001),
 				kernel_regularizer=regularizers.l2(0.01))(inputs)
 			conveds.append(conved)
 			pooled = GlobalMaxPooling1D()(conved)
@@ -122,10 +183,10 @@ class SimpleCNN:
 		fc_in = Concatenate(axis=1)(pooleds)
 
 		network = Dense(128)(fc_in)
-		network = keras.layers.LeakyReLU(alpha=.001)(network)
+		network = keras.layers.LeakyReLU(alpha=.001, name="lrelu1")(network)
 		network = Dropout(0.5)(network)
 		network = Dense(64)(fc_in)
-		network = keras.layers.LeakyReLU(alpha=.001)(network)
+		network = keras.layers.LeakyReLU(alpha=.001, name="lrelu2")(network)
 		network = Dropout(0.5)(network)
 		network = Dense(num_classes)(fc_in)
 		outputs = Activation('softmax')(network)
@@ -161,30 +222,10 @@ class SimpleCNN:
 
 		print('Using real-time data augmentation.')
 
-		csv_file_name = "data/made.csv"
-		count = 0
-		with open(csv_file_name, "r") as f:
-			for line in f:
-				count += 1
-		
-		import progressbar
-		widgets=[progressbar.Bar(),
-			' [', progressbar.Timer(), '] ',
-			progressbar.Bar(),
-			' (', progressbar.ETA(), ') ', progressbar.AnimatedMarker()]
+		h5pyfile = h5py.File("data/database.hdf5", "r")
+		text_data = h5pyfile.get("text")
 
-		seek_pos = [0] * count
-		with open(csv_file_name, "r") as f:
-			seek_pos[0] = f.tell()
-			for i in progressbar.progressbar(range(1, count), max_value=count):
-				f.readline()
-				val = f.tell()
-				
-				try:
-					seek_pos[i] = val
-				except OverflowError:
-					print(val)
-					raise
+		count = text_data.shape[0]
 
 		indexes = np.arange(count)
 		np.random.shuffle(indexes)
@@ -193,13 +234,13 @@ class SimpleCNN:
 		testing = indexes[int(count * 0.9) : ]
 
 		# This will do preprocessing and realtime data augmentation:
-		training_datagen = DataGenerator(lines=training, seek_pos=seek_pos)
-		testing_datagen = DataGenerator(lines=testing, seek_pos=seek_pos)
+		training_datagen = DataGeneratorFromHDF5(lines=training)
+		testing_datagen = DataGeneratorFromHDF5(lines=testing)
 
 		tbCallBack = keras.callbacks.TensorBoard(write_grads=True)
 		ckpntCallBack = keras.callbacks.ModelCheckpoint(
 			self.checkpoint_filepath, monitor='val_acc', verbose=1,
-			save_best_only=True, mode='max', period=25)
+			save_best_only=True, mode='max', period=5)
 
 		# Fit the model on the batches generated by datagen.flow().
 		self.model.fit_generator(training_datagen,
